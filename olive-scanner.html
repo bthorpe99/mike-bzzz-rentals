@@ -666,6 +666,7 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
 <script>
 // ═══════════════════════════════════════════
 // STATE
@@ -3945,6 +3946,12 @@ async function startCamera() {
             status.textContent = 'Point camera at a barcode';
             scanLine.classList.remove('paused');
             scanDetectionLoop();
+        } else if (typeof ZXing !== 'undefined') {
+            // iPhone / Safari fallback — use ZXing library
+            state.scanning = true;
+            status.textContent = 'Point camera at a barcode';
+            scanLine.classList.remove('paused');
+            zxingScanLoop();
         } else {
             status.textContent = 'Camera active — manual entry below';
             scanLine.classList.add('paused');
@@ -3978,6 +3985,51 @@ async function scanDetectionLoop() {
     }
 }
 
+async function zxingScanLoop() {
+    const video = document.getElementById('scanVideo');
+    const status = document.getElementById('scanStatus');
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    const hints = new Map();
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+        ZXing.BarcodeFormat.EAN_13,
+        ZXing.BarcodeFormat.EAN_8,
+        ZXing.BarcodeFormat.UPC_A,
+        ZXing.BarcodeFormat.UPC_E,
+        ZXing.BarcodeFormat.CODE_128,
+        ZXing.BarcodeFormat.CODE_39,
+        ZXing.BarcodeFormat.ITF,
+        ZXing.BarcodeFormat.CODABAR
+    ]);
+    hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+
+    const reader = new ZXing.MultiFormatReader();
+    reader.setHints(hints);
+
+    while (state.scanning && state.cameraStream) {
+        try {
+            if (video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth > 0) {
+                canvas.width  = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const luminance = new ZXing.RGBLuminanceSource(imageData.data, canvas.width, canvas.height);
+                const bitmap    = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(luminance));
+                const result    = reader.decode(bitmap);
+                if (result) {
+                    state.scanning = false;
+                    handleBarcodeDetected(result.getText());
+                    return;
+                }
+            }
+        } catch (e) {
+            // ZXing throws NotFoundException every frame with no barcode — ignore
+        }
+        await new Promise(r => requestAnimationFrame(r));
+    }
+}
+
 function handleBarcodeDetected(barcode) {
     const banner = document.getElementById('barcodeBanner');
     const flash = document.getElementById('scanFlash');
@@ -3999,12 +4051,16 @@ function handleBarcodeDetected(barcode) {
         setTimeout(() => openUnknownBarcode(barcode), 300);
     }
 
-    // Resume scanning after sheet close
+    // Resume scanning after sheet close (works for both BarcodeDetector and ZXing/iPhone)
     setTimeout(() => {
-        if (state.currentView === 'scanner' && state.barcodeDetector) {
+        if (state.currentView === 'scanner' && state.cameraStream) {
             state.scanning = true;
             document.getElementById('scanStatus').textContent = 'Point camera at a barcode';
-            scanDetectionLoop();
+            if (state.barcodeDetector) {
+                scanDetectionLoop();
+            } else if (typeof ZXing !== 'undefined') {
+                zxingScanLoop();
+            }
         }
     }, 4000);
 }
