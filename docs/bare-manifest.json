@@ -1,0 +1,19 @@
+{
+  "name": "Bare — Food Scanner",
+  "short_name": "Bare",
+  "description": "Know what's really in your food. Scan barcodes, score ingredients, find clean stores.",
+  "start_url": "/bare-food-scanner/",
+  "scope": "/bare-food-scanner/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#080816",
+  "theme_color": "#080816",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='115' fill='%237C3AED'/><text x='50%25' y='58%25' font-size='280' text-anchor='middle' dominant-baseline='middle' fill='white' font-family='system-ui,sans-serif' font-weight='800'>B</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

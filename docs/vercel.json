@@ -1,0 +1,17 @@
+{
+  "rewrites": [
+    { "source": "/bare-manifest.json", "destination": "/bare-manifest.json" },
+    { "source": "/bare-sw.js", "destination": "/bare-sw.js" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/bare-sw.js",
+      "headers": [{ "key": "Content-Type", "value": "application/javascript" }]
+    },
+    {
+      "source": "/bare-manifest.json",
+      "headers": [{ "key": "Content-Type", "value": "application/manifest+json" }]
+    }
+  ]
+}
